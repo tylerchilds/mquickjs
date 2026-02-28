@@ -258,21 +258,22 @@ static uint8_t *load_file(const char *filename, int *plen)
     return buf;
 }
 
+static int js_log_err_flag;
+
 static void js_log_func(void *opaque, const void *buf, size_t buf_len)
 {
-    fwrite(buf, 1, buf_len, stdout);
+    fwrite(buf, 1, buf_len, js_log_err_flag ? stderr : stdout);
 }
 
 static void dump_error(JSContext *ctx)
 {
-    char buf[256];
-    size_t len;
-
-    JS_GetErrorStr(ctx, buf, sizeof(buf));
-    fprintf(stderr, "%s%s%s", term_colors[STYLE_ERROR_MSG], buf, term_colors[COLOR_NONE]);
-    len = strlen(buf);
-    if (len == 0 || buf[len - 1] != '\n')
-        fprintf(stderr, "\n");
+    JSValue obj;
+    obj = JS_GetException(ctx);
+    fprintf(stderr, "%s", term_colors[STYLE_ERROR_MSG]);
+    js_log_err_flag++;
+    JS_PrintValueF(ctx, obj, JS_DUMP_LONG);
+    js_log_err_flag--;
+    fprintf(stderr, "%s\n", term_colors[COLOR_NONE]);
 }
 
 static int eval_buf(JSContext *ctx, const char *eval_str, const char *filename, BOOL is_repl, int parse_flags)
@@ -303,14 +304,15 @@ static int eval_buf(JSContext *ctx, const char *eval_str, const char *filename, 
 }
 
 static int eval_file(JSContext *ctx, const char *filename,
-                     int argc, const char **argv, int parse_flags)
+                     int argc, const char **argv, int parse_flags,
+                     BOOL allow_bytecode)
 {
     uint8_t *buf;
     int ret, buf_len;
     JSValue val;
     
     buf = load_file(filename, &buf_len);
-    if (JS_IsBytecode(buf, buf_len)) {
+    if (allow_bytecode && JS_IsBytecode(buf, buf_len)) {
         if (JS_RelocateBytecode(ctx, buf, buf_len)) {
             fprintf(stderr, "Could not relocate bytecode\n");
             exit(1);
@@ -566,15 +568,16 @@ static void help(void)
 {
     printf("MicroQuickJS" "\n"
            "usage: mqjs [options] [file [args]]\n"
-           "-h  --help         list options\n"
-           "-e  --eval EXPR    evaluate EXPR\n"
-           "-i  --interactive  go to interactive mode\n"
-           "-I  --include file include an additional file\n"
-           "-d  --dump         dump the memory usage stats\n"
-           "    --memory-limit n       limit the memory usage to 'n' bytes\n"
-           "--no-column        no column number in debug information\n"
-           "-o FILE            save the bytecode to FILE\n"
-           "-m32               force 32 bit bytecode output (use with -o)\n");
+           "-h  --help            list options\n"
+           "-e  --eval EXPR       evaluate EXPR\n"
+           "-i  --interactive     go to interactive mode\n"
+           "-I  --include file    include an additional file\n"
+           "-d  --dump            dump the memory usage stats\n"
+           "    --memory-limit n  limit the memory usage to 'n' bytes\n"
+           "--no-column           no column number in debug information\n"
+           "-o FILE               save the bytecode to FILE\n"
+           "-m32                  force 32 bit bytecode output (use with -o)\n"
+           "-b  --allow-bytecode  allow bytecode in input file\n");
     exit(1);
 }
 
@@ -591,12 +594,13 @@ int main(int argc, const char **argv)
     uint8_t *mem_buf;
     JSContext *ctx;
     int i, parse_flags;
-    BOOL force_32bit;
+    BOOL force_32bit, allow_bytecode;
     
     mem_size = 16 << 20;
     dump_memory = 0;
     parse_flags = 0;
     force_32bit = FALSE;
+    allow_bytecode = FALSE;
     
     /* cannot use getopt because we want to pass the command line to
        the script */
@@ -701,6 +705,10 @@ int main(int argc, const char **argv)
                 arg += strlen(arg);
                 continue;
             }
+            if (opt == 'b' || !strcmp(longopt, "allow-bytecode")) {
+                allow_bytecode = TRUE;
+                continue;
+            }
             if (opt) {
                 fprintf(stderr, "qjs: unknown option '-%c'\n", opt);
             } else {
@@ -724,12 +732,14 @@ int main(int argc, const char **argv)
         {
             struct timeval tv;
             gettimeofday(&tv, NULL);
-            JS_SetRandomSeed(ctx, ((uint64_t)tv.tv_sec << 32) | tv.tv_usec);
+            JS_SetRandomSeed(ctx, ((uint64_t)tv.tv_sec << 32) ^ tv.tv_usec);
         }
 
         for(i = 0; i < include_count; i++) {
-            if (eval_file(ctx, include_list[i], 0, NULL, parse_flags))
+            if (eval_file(ctx, include_list[i], 0, NULL,
+                          parse_flags, allow_bytecode)) {
                 goto fail;
+            }
         }
         
         if (expr) {
@@ -739,8 +749,9 @@ int main(int argc, const char **argv)
             interactive = 1;
         } else {
             if (eval_file(ctx, argv[optind], argc - optind, argv + optind,
-                          parse_flags))
+                          parse_flags, allow_bytecode)) {
                 goto fail;
+            }
         }
         
         if (interactive) {

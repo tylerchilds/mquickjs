@@ -6,6 +6,8 @@
 #CONFIG_ASAN=y
 #CONFIG_GPROF=y
 CONFIG_SMALL=y
+# consider warnings as errors (for development)
+#CONFIG_WERROR=y
 
 ifdef CONFIG_ARM32
 CROSS_PREFIX=arm-linux-gnu-
@@ -25,8 +27,12 @@ endif
 
 HOST_CC=gcc
 CC=$(CROSS_PREFIX)gcc
-CFLAGS=-Wall -g -MMD -Werror -D_GNU_SOURCE -fno-math-errno -fno-trapping-math
-HOST_CFLAGS=-Wall -g -MMD -Werror -D_GNU_SOURCE -fno-math-errno -fno-trapping-math
+CFLAGS=-Wall -g -MMD -D_GNU_SOURCE -fno-math-errno -fno-trapping-math
+HOST_CFLAGS=-Wall -g -MMD -D_GNU_SOURCE -fno-math-errno -fno-trapping-math
+ifdef CONFIG_WERROR
+CFLAGS+=-Werror
+HOST_CFLAGS+=-Werror
+endif
 ifdef CONFIG_ARM32
 CFLAGS+=-mthumb
 endif
@@ -119,7 +125,7 @@ test: mqjs example
 # test bytecode generation and loading
 	./mqjs -o test_builtin.bin tests/test_builtin.js
 #	@sha256sum -c test_builtin.sha256
-	./mqjs test_builtin.bin
+	./mqjs -b test_builtin.bin
 	./example tests/test_rect.js
 
 microbench: mqjs

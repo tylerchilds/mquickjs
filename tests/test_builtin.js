@@ -125,12 +125,19 @@ function test()
     assert(a.z, 4, "get");
     a.z = 5;
     assert(a.z_val, 5, "set");
-/*
+
+    Object.defineProperty(a, "w", {});
+    assert("w" in a, true);
+    a.w = 1;
+    
+    Object.defineProperty(a, "w", {});
+    assert(a.w, 1);
+    
     a = { get z() { return 4; }, set z(val) { this.z_val = val; } };
     assert(a.z, 4, "get");
     a.z = 5;
     assert(a.z_val, 5, "set");
-*/
+
     a = {};
     b = Object.create(a);
     assert(Object.getPrototypeOf(b), a, "create");
@@ -361,14 +368,29 @@ function test_string()
     assert("abc".indexOf("c"), 2);
     assert("abcabc".lastIndexOf("ab"), 3);
 
-    a = "a,b,c".split(",");
-    assert(a.length === 3 && a[0] === "a" && a[1] === "b" && a[2] === "c");
-    a = ",b,c".split(",");
-    assert(a.length === 3 && a[0] === "" && a[1] === "b" && a[2] === "c");
-    a = "a,b,".split(",");
-    assert(a.length === 3 && a[0] === "a" && a[1] === "b" && a[2] === "");
+    assert("a,b,c".split(","), ["a","b","c"]);
+    assert(",b,c".split(","), ["","b","c"]);
+    assert("a,b,".split(","), ["a","b",""]);
 
-//    assert((1,eval)('"\0"'), "\0");
+    assert("aaaa".split(), [ "aaaa" ]);
+    assert("aaaa".split(undefined, 0), [ ]);
+    assert("aaaa".split(""), [ "a", "a", "a", "a" ]);
+    assert("aaaa".split("", 0), [ ]);
+    assert("aaaa".split("", 1), [ "a" ]);
+    assert("aaaa".split("", 2), [ "a", "a" ]);
+    assert("aaaa".split("a"), [ "", "", "", "", "" ]);
+    assert("aaaa".split("a", 2), [ "", "" ]);
+    assert("aaaa".split("aa"), [ "", "", "" ]);
+    assert("aaaa".split("aa", 0), [ ]);
+    assert("aaaa".split("aa", 1), [ "" ]);
+    assert("aaaa".split("aa", 2), [ "", "" ]);
+    assert("aaaa".split("aaa"), [ "", "a" ]);
+    assert("aaaa".split("aaaa"), [ "", "" ]);
+    assert("aaaa".split("aaaaa"), [ "aaaa" ]);
+    assert("aaaa".split("aaaaa", 0), [  ]);
+    assert("aaaa".split("aaaaa", 1), [ "aaaa" ]);
+
+    //    assert((1,eval)('"\0"'), "\0");
     assert("123AbCd€".toLowerCase(), "123abcd€");
     assert("123AbCd€".toUpperCase(), "123ABCD€");
     assert("  ab€cd  ".trim(), "ab€cd");
@@ -376,6 +398,14 @@ function test_string()
     assert("  ab€cd  ".trimEnd(), "  ab€cd");
     assert("abcabc".replace("b", "a$$b$&"), "aa$bbcabc");
     assert("abcabc".replaceAll("b", "a$$b$&"),"aa$bbcaa$bbc");
+
+    a = "";
+    assert("bab".replace("a", function(a0, a1, a2) { a += a0 + "," + a1 + "," + a2; return "hi"; }), "bhib");
+    assert(a, "a,1,bab");
+
+    assert("abc".repeat(3), "abcabcabc");
+    assert("abc".repeat(0), "");
+    assert("".repeat(1000000000), "");
 }
 
 /* specific tests for internal UTF-8 storage */
@@ -526,12 +556,14 @@ function test_typed_array()
 
     assert(a.buffer, buffer);
 
-    a = new Uint8Array([1, 2, 3, 4]);
+    a = new Int32Array([1, 2, 3, 4]);
     assert(a.toString(), "1,2,3,4");
-    if (0) {
-        a.set([10, 11], 2);
-        assert(a.toString(), "1,2,10,11");
-    }
+    a.set([10, 11], 2);
+    assert(a.toString(), "1,2,10,11");
+    a.set([12, 13]);
+    assert(a.toString(), "12,13,10,11");
+    a.set(new Int32Array([0, 1]), 1);
+    assert(a.toString(), "12,0,1,11");
 
     a = new Uint8Array([1, 2, 3, 4]);
     a = a.subarray(1, 3);
@@ -540,15 +572,7 @@ function test_typed_array()
 
 function repeat(a, n)
 {
-    var i, r;
-    r = "";
-    while (n != 0) {
-        if (n & 1)
-            r += a;
-        a += a;
-        n >>>= 1;
-    }
-    return r;
+    return a.repeat(n);
 }
 
 /* return [s, line_num, col_num] where line_num and col_num are the
@@ -615,7 +639,7 @@ function test_json()
 {
     var a, s, n;
 
-    s = '{"x":1,"y":true,"z":null,"a":[1,2,false],"1234":"str"}';
+    s = '{"1234":"str","x":1,"y":true,"z":null,"a":[1,2,false]}';
     a = JSON.parse(s);
     assert(a.x, 1);
     assert(a.y, true);
@@ -738,6 +762,11 @@ function test_regexp()
     assert("abbbbccccd".replace(/(b+)(c+)/g, "_$1_$2_"), "a_bbbb_cccc_d");
     assert("abbbbcd".replace(/b+/g, "_$`_$&_$'_"), "a_a_bbbb_cd_cd");
 
+    a = "";
+    assert("babbc".replace(/a(b+)/, function() { var i; for(i=0;i<arguments.length;i++) a += " " + arguments[i]; return "hi"; }),
+           "bhic");
+    assert(a, " abb bb 1 babbc");
+    
     assert("abc".split(/b/), ["a", "c"]);
     assert("ab".split(/a*/g), ["", "b"]);
     assert("ab".split(/a*?/g), ["a", "b"]);

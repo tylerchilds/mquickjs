@@ -131,6 +131,10 @@ JSValue js_string_toLowerCase(JSContext *ctx, JSValue *this_val,
                               int argc, JSValue *argv, int to_lower);
 JSValue js_string_trim(JSContext *ctx, JSValue *this_val,
                        int argc, JSValue *argv, int magic);
+JSValue js_string_toString(JSContext *ctx, JSValue *this_val,
+                           int argc, JSValue *argv);
+JSValue js_string_repeat(JSContext *ctx, JSValue *this_val,
+                         int argc, JSValue *argv);
 
 JSValue js_object_constructor(JSContext *ctx, JSValue *this_val,
                               int argc, JSValue *argv);
@@ -230,6 +234,8 @@ JSValue js_typed_array_get_length(JSContext *ctx, JSValue *this_val,
                                   int argc, JSValue *argv, int magic);
 JSValue js_typed_array_subarray(JSContext *ctx, JSValue *this_val,
                                 int argc, JSValue *argv);
+JSValue js_typed_array_set(JSContext *ctx, JSValue *this_val,
+                           int argc, JSValue *argv);
 
 JSValue js_date_constructor(JSContext *ctx, JSValue *this_val,
                             int argc, JSValue *argv);
