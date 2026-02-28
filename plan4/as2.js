@@ -41,9 +41,8 @@ function as2(script) {
   }
 
   var lines = script.split('\n')
-  for (var line of lines) {
-    if (typeof line !== 'string') continue
-    var beat = line.trim()
+  for (var i = 0; i < lines.length; i++) {
+    var beat = String(lines[i]).trim()
     ;(times[time] || noop)(beat)
   }
 
@@ -113,9 +112,7 @@ function activities(script) {
   var lines = script.split('\n')
 
   for (var i = 0; i < lines.length; i++) {
-    var line = lines[i]
-    if (typeof line !== 'string') continue
-    var beat = line.trim()
+    var beat = String(lines[i]).trim()
     if (!beat) continue
 
     var rune = beat[0]
@@ -138,7 +135,6 @@ function activities(script) {
             object: { type: 'Note', content: text },
             location: location || undefined
           })
-          // keep currentActor — consecutive > lines stay as Create for same actor
         } else {
           result.push({
             type: 'Narrate',
@@ -244,7 +240,6 @@ if (isQuickJS) {
 }
 
 if (isDeno) {
-  // import.meta.main is true only when this is the entry module
   if (typeof import_meta_main !== 'undefined' && import_meta_main) {
     var buf = new Uint8Array(1024 * 1024)
     var n = Deno.stdin.readSync(buf)
@@ -252,7 +247,6 @@ if (isDeno) {
   }
 }
 
-// Node and Bun both support require.main === module
 if ((isNode || isBun) && typeof module !== 'undefined' && require.main === module) {
   var chunks = []
   process.stdin.on('data', function(d) { chunks.push(d) })

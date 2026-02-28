@@ -51,14 +51,20 @@ function Subtract(a, b) { return a - b }
 function Multiply(a, b) { return a * b }
 function Divide(a, b) { return a / b }
 function Modulo(a, b) { return a % b }
-
 function saga(x) {
-  if (typeof globalThis.as2 === 'function') return globalThis.as2(Text(x))
+  if (typeof globalThis.as2 === 'function') return String(globalThis.as2(Text(x)))
   return ''
 }
 function Saga(x) { return saga(Text(x)) }
 function Self(x) { return Box(x) }
-function Box(x) { return { x } }
+function Box(x) { return { x: x } }
+
+function arrayFind(arr, fn) {
+  for (var i = 0; i < arr.length; i++) {
+    if (fn(arr[i])) return arr[i]
+  }
+  return undefined
+}
 
 function Expect(a, b) {
   if(a === b) {
@@ -108,6 +114,7 @@ Describe('Math will always math', function callback(done) {
 })
 
 Describe('A Saga will always be a string', function callback(done) {
+  
   Expect(typeof Saga(123), string)
   Expect(typeof Saga('Hello'), string)
   Expect(typeof Saga(function(){}), string)
@@ -120,22 +127,20 @@ Describe('A Saga will always be a string', function callback(done) {
 })
 
 Describe('A plaintext saga will output markup language', function callback(done) {
-  var input = ''
-  input += '# Ext/Int Alfheim'
-  input += '\n'
-  input += '@ Silly'
-  input += '\n'
-  input += '> Remember Xanadu? lol'
+  var input = [
+    '# Ext/Int Alfheim',
+    '@ Silly',
+    '> Remember Xanadu? lol'
+  ].join('\n')
 
   var output = Saga(input)
+  console.log(typeof output, Object.prototype.toString.call(output), output)
   Expect(typeof output, string)
 
   if (typeof globalThis.as2 === 'function') {
-    // as2 is wired — expect real markup
     Expect(output.indexOf('<hypertext-address>') > -1, true)
     Expect(output.indexOf('<hypertext-quote>') > -1, true)
   } else {
-    // mqjs fallback — not yet implemented
     console.log('error: ', 'todo: implement saga in mqjs')
   }
 
@@ -148,26 +153,24 @@ Describe('activities() returns AS2 objects', function callback(done) {
     return done()
   }
 
-  var input = ''
-  input += '# Ext/Int Alfheim'
-  input += '\n'
-  input += '@ Silly'
-  input += '\n'
-  input += '> Remember Xanadu? lol'
-  input += '\n'
-  input += '^ fade to black'
+  var input = [
+    '# Ext/Int Alfheim',
+    '@ Silly',
+    '> Remember Xanadu? lol',
+    '^ fade to black'
+  ].join('\n')
 
   var acts = globalThis.as2.activities(input)
   Expect(Array.isArray(acts), true)
   Expect(acts.length > 0, true)
 
-  var create = acts.find(function(a) { return a.type === 'Create' })
+  var create = arrayFind(acts, function(a) { return a.type === 'Create' })
   Expect(!!create, true)
   Expect(create.actor.name, 'Silly')
   Expect(create.object.content, 'Remember Xanadu? lol')
   Expect(create.location, 'Ext/Int Alfheim')
 
-  var effect = acts.find(function(a) { return a.type === 'Effect' })
+  var effect = arrayFind(acts, function(a) { return a.type === 'Effect' })
   Expect(!!effect, true)
   Expect(effect.content, 'fade to black')
 
