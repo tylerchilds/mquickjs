@@ -9,11 +9,8 @@ cat tests/test.saga | deno run plan4/as2.js
 
 echo ""
 echo "=== as2: mqjs ==="
-# mqjs cannot read .saga files directly (load() evals JS)
-# workaround: embed saga text via -e into globalThis.__saga
-SAGA=$(cat tests/test.saga)
-./mqjs plan4/as2.js
-# TODO: find a way to pass raw text to mqjs without eval
+awk 'BEGIN{printf "globalThis.__saga=\""} {gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); printf "%s\\n", $0} END{printf "\";\n"}' tests/test.saga > tests/test-saga.js
+./mqjs -I tests/test-saga.js plan4/as2.js
 
 echo ""
 echo "=== pan-saga: node ==="
@@ -25,4 +22,4 @@ node tests/elf-unit.js
 
 echo ""
 echo "=== elf-unit: deno ==="
-deno run tests/elf-unit.js
+deno run --preload=./plan4/as2.js tests/elf-unit.js

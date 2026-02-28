@@ -1,4 +1,6 @@
-import '../plan4/as2.js'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+require('../plan4/as2.js')  // sets globalThis.as2 via CJS module.exports + _global
 
 // ---------------------------------------------------------------------------
 // helpers

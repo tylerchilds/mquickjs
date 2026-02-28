@@ -28,3 +28,4 @@ readline.o
 readline_tty.d
 readline_tty.o
 test_builtin.bin
+tests/test-saga.js

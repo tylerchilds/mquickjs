@@ -1,14 +1,16 @@
 // elf-unit.js — polyglot (node, deno, mqjs)
 // load as2 if not already present
 ;(function() {
-  if (typeof globalThis.as2 === 'undefined') {
-    if (typeof require !== 'undefined') {
-      // Node CJS
-      require('../plan4/as2.js')
-    }
-    // Deno: loaded via --import or the test runner imports it
-    // mqjs: load via -I flag or globalThis.__as2 preload
+  if (typeof globalThis.as2 !== 'undefined') return
+
+  // Node CJS
+  if (typeof require !== 'undefined') {
+    try { require('../plan4/as2.js'); return } catch(e) {}
   }
+
+  // Deno / Node ESM — can't do dynamic require here synchronously,
+  // so as2.js must be loaded via --import or the runner handles it.
+  // mqjs: preload via -I flag
 })()
 
 var string = 'string'
