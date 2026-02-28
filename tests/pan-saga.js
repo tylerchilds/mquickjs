@@ -8,11 +8,13 @@ if(import.meta.url.startsWith('file:')) {
 }
 
 async function main() {
-  await import("./as2.js").then(({ as2 }) => {
-    const output = as2(`
+  await import("./as2.js").then(() => {
+    const output = globalThis.as2(`
 
-# Int. Bengo Apt.
-    `)
+
+    # Int. Bengo Apt.
+
+    ^fade out`)
     console.log(output)
   })
 

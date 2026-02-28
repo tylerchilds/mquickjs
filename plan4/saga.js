@@ -1,3 +1,4 @@
+(function iife() {
 /*
 
 // the tanka of the tiniest violin
@@ -68,7 +69,7 @@ const PROP_TIME = Symbol('p-time')
 // actor embeds rich hyper media content
 const ACTOR_TIME = Symbol('a-time')
 
-export function r($, path, options={}) {
+function r($, path, options={}) {
   let string = $.learn()[path] || ''
 
   if(!string) {
@@ -84,7 +85,7 @@ export function r($, path, options={}) {
 }
 
 
-export function as2(script) {
+function saga(script) {
   // nothing in, nothing out
   if(!script) return ''
   const state = {}
@@ -158,7 +159,7 @@ export function as2(script) {
   if(time !== NORMAL_TIME) times[time]('')
 
   // clearn our compiled hyper media scene
-  const clean = as2(script)
+  const clean = validated(scene) ? `<xml-html>${scene}</xml-html>` : escapeHyperText(script)
 
   return template(state, clean)
 
@@ -174,8 +175,6 @@ export function as2(script) {
 
     // the rune will always be the first glyph
     const rune = line[0]
-
-    console.log(line)
 
     // however, the first glyph won't always be a rune.
     if(Object.keys(RuneTable).includes(rune)) {
@@ -320,4 +319,25 @@ function screenplay(content) {
   `
 }
 
-export default as2
+function escapeHyperText(text = '') {
+  return text.replace(/[&<>'"]/g,
+    actor => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[actor])
+  )
+}
+
+globalThis.saga = saga
+})()
+
+var unitTest = globalThis.saga("" +
+"     # Int. Bengo Apt." +
+"" +
+"     ^ fade out" +
+"")
+
+console.log(unitTest)
