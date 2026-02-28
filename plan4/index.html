@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>pan-saga</title>
+</head>
+<body>
+
+<pan-saga id="test">
+  <script slot="src" type="text/saga">
+# Int. Bengo Apt.
+Elevator lobby. BENGO reaches from elevator and waves to TY.
+@ Bengo
+> if you omit the hyphen it'll redirect you to
+<hello-world
+^ fade to black
+  </script>
+</pan-saga>
+
+<script src="as2.js"></script>
+<script src="pan-saga.js"></script>
+
+<script>
+  // test assertions embedded in page for curl/headless scraping
+  window.__results = []
+
+  function assert(label, actual, expected) {
+    var ok = JSON.stringify(actual) === JSON.stringify(expected)
+    window.__results.push({ label: label, ok: ok })
+    console.log(ok ? '✓' : '✗', label)
+  }
+
+  document.addEventListener('saga-ready', function() {
+    var el = document.getElementById('test')
+    var output = el.querySelector('.pan-saga-output')
+
+    assert('renders output', !!output, true)
+    assert('contains address', output.innerHTML.indexOf('<hypertext-address>') > -1, true)
+    assert('contains effect',  output.innerHTML.indexOf('<hypertext-effect>') > -1, true)
+    assert('contains quote',   output.innerHTML.indexOf('<hypertext-quote>') > -1, true)
+
+    var acts = el._acts
+    assert('activities is array', Array.isArray(acts), true)
+    assert('has Create',  acts.some(function(a) { return a.type === 'Create' }), true)
+    assert('has Effect',  acts.some(function(a) { return a.type === 'Effect' }), true)
+    assert('Create actor name',
+      acts.find(function(a) { return a.type === 'Create' }).actor.name, 'Bengo')
+
+    var pass = window.__results.filter(function(r) { return r.ok }).length
+    var fail = window.__results.filter(function(r) { return !r.ok }).length
+
+    var pre = document.createElement('pre')
+    pre.id = 'test-results'
+    pre.textContent = JSON.stringify({ pass: pass, fail: fail, results: window.__results }, null, 2)
+    document.body.appendChild(pre)
+  })
+</script>
+
+</body>
+</html>

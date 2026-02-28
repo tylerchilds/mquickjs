@@ -29,3 +29,4 @@ readline_tty.d
 readline_tty.o
 test_builtin.bin
 tests/test-saga.js
+tests/as2.log

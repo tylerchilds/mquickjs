@@ -11,7 +11,6 @@ var fail = 0
 function assert(label, actual, expected) {
   var ok = JSON.stringify(actual) === JSON.stringify(expected)
   if (ok) {
-    console.log('  ✓', label)
     pass++
   } else {
     console.log('  ✗', label)
@@ -30,7 +29,6 @@ async function describe(label, fn) {
 // fixture — read from stdin if piped, otherwise use inline
 // ---------------------------------------------------------------------------
 async function getSaga() {
-  // check if stdin has data (piped)
   if (!process.stdin.isTTY) {
     return new Promise(function(resolve) {
       var chunks = []
@@ -64,6 +62,7 @@ async function getSaga() {
 // ---------------------------------------------------------------------------
 async function main() {
   const saga = await getSaga()
+  const isInline = process.stdin.isTTY
 
   await describe('as2() HTML output', function() {
     const html = globalThis.as2(saga)
@@ -79,30 +78,41 @@ async function main() {
     assert('returns an array', Array.isArray(acts), true)
     assert('has activities', acts.length > 0, true)
 
-    // location is set by # rune
     const creates = acts.filter(a => a.type === 'Create')
     assert('has Create activities', creates.length > 0, true)
-    assert('Create has location', creates[0].location, 'Int. Bengo Apt.')
-    assert('Create actor name', creates[0].actor.name, 'Bengo')
-    assert('Create object type', creates[0].object.type, 'Note')
-    assert('Create object content',
-      creates[0].object.content,
-      "if you omit the hyphen it'll redirect you to"
-    )
+
+    if (isInline) {
+      assert('Create has location', creates[0].location, 'Int. Bengo Apt.')
+      assert('Create actor name', creates[0].actor.name, 'Bengo')
+      assert('Create object type', creates[0].object.type, 'Note')
+      assert('Create object content',
+        creates[0].object.content,
+        "if you omit the hyphen it'll redirect you to"
+      )
+    } else {
+      assert('Create has location', creates[0].location, 'Int. Photography Set - White backdrop')
+      assert('Create actor name', creates[0].actor.name, 'Person')
+      assert('Create object type', creates[0].object.type, 'Note')
+      assert('Create object content', creates[0].object.content, 'I am a person.')
+    }
 
     const effects = acts.filter(a => a.type === 'Effect')
     assert('has Effect activities', effects.length > 0, true)
-    assert('Effect content', effects[0].content, 'fade to black')
+    assert('Effect content', effects[0].content, isInline ? 'fade to black' : 'Paper Cutaway')
 
     const narrates = acts.filter(a => a.type === 'Narrate')
     assert('has Narrate activities', narrates.length > 0, true)
 
-    const helloWorld = narrates.find(a => a.content && a.content.indexOf('hello-world') > -1)
-    assert('Narrates hello-world element', !!helloWorld, true)
+    if (isInline) {
+      const helloWorld = narrates.find(a => a.content && a.content.indexOf('hello-world') > -1)
+      assert('Narrates hello-world element', !!helloWorld, true)
+    } else {
+      const url = narrates.find(a => a.content && a.content.indexOf('comedymap.org') > -1)
+      assert('Narrates URL element', !!url, true)
+    }
   })
 
   await describe('PanSaga#activities AsyncIterable', async function() {
-    // simulate what PanSaga would expose
     const acts = globalThis.as2.activities(saga)
 
     async function* toAsyncIterable(arr) {
@@ -112,7 +122,6 @@ async function main() {
     const iterable = toAsyncIterable(acts)
     assert('has Symbol.asyncIterator', typeof iterable[Symbol.asyncIterator], 'function')
 
-    // collect via for-await
     const collected = []
     for await (const activity of toAsyncIterable(acts)) {
       collected.push(activity)
