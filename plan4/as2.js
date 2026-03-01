@@ -13,6 +13,7 @@
 
 function as2(script) {
   if(!script) return ''
+  script = '' + script
   var state = {}
   var actors = state.actors = {}
   var time = 'NORMAL_TIME'
@@ -42,7 +43,7 @@ function as2(script) {
 
   var lines = script.split('\n')
   for (var i = 0; i < lines.length; i++) {
-    var beat = String(lines[i]).trim()
+    var beat = lines[i].trim()
     ;(times[time] || noop)(beat)
   }
 
@@ -104,15 +105,58 @@ function as2(script) {
 // ---------------------------------------------------------------------------
 function activities(script) {
   if(!script) return []
+  script = '' + script
 
   var result = []
   var location = ''
   var currentActor = ''
+  var time = 'NORMAL_TIME'
+  var embedName = ''
+  var embedAttrs = {}
+
+  function flushEmbed() {
+    var attrs = ''
+    var keys = Object.keys(embedAttrs)
+    for (var k = 0; k < keys.length; k++) {
+      attrs += ' ' + keys[k] + '="' + embedAttrs[keys[k]] + '"'
+    }
+    var content = '<' + embedName + attrs + '></' + embedName + '>'
+    result.push({
+      type: 'Narrate',
+      actor: { type: 'Narrator' },
+      content: content,
+      location: location || undefined
+    })
+    embedName = ''
+    embedAttrs = {}
+    time = 'NORMAL_TIME'
+  }
 
   var lines = script.split('\n')
 
   for (var i = 0; i < lines.length; i++) {
-    var beat = String(lines[i]).trim()
+    var beat = lines[i].trim()
+
+    if (time === 'EMBED_TIME') {
+      if (!beat) {
+        // blank line closes the embed
+        flushEmbed()
+        continue
+      }
+      var sep = beat.indexOf(':')
+      if (sep > -1) {
+        var key = beat.substring(0, sep).trim()
+        var val = beat.substring(sep + 1).trim()
+        if (key) {
+          embedAttrs[key] = val
+          continue
+        }
+      }
+      // non-property line closes the embed and reprocesses this line
+      flushEmbed()
+      // fall through to normal processing below
+    }
+
     if (!beat) continue
 
     var rune = beat[0]
@@ -146,12 +190,9 @@ function activities(script) {
         break
 
       case '<':
-        result.push({
-          type: 'Narrate',
-          actor: { type: 'Narrator' },
-          content: '<' + text + '>',
-          location: location || undefined
-        })
+        embedName = text
+        embedAttrs = {}
+        time = 'EMBED_TIME'
         break
 
       case '!':
@@ -185,6 +226,9 @@ function activities(script) {
         break
     }
   }
+
+  // flush any unclosed embed at end of input
+  if (time === 'EMBED_TIME') flushEmbed()
 
   return result
 }

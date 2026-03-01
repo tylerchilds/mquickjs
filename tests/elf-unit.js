@@ -43,16 +43,17 @@ function False() { return false }
 function Value(x) { return x }
 function Precision(x) { return parseFloat(x) }
 function Text(x) {
-  if(!x) x = ''
-  return x.toString()
+  if(!x) return ''
+  return '' + x
 }
 function Add(a, b) { return a + b }
 function Subtract(a, b) { return a - b }
 function Multiply(a, b) { return a * b }
 function Divide(a, b) { return a / b }
 function Modulo(a, b) { return a % b }
+
 function saga(x) {
-  if (typeof globalThis.as2 === 'function') return String(globalThis.as2(Text(x)))
+  if (typeof globalThis.as2 === 'function') return globalThis.as2(x)
   return ''
 }
 function Saga(x) { return saga(Text(x)) }
@@ -114,7 +115,6 @@ Describe('Math will always math', function callback(done) {
 })
 
 Describe('A Saga will always be a string', function callback(done) {
-  
   Expect(typeof Saga(123), string)
   Expect(typeof Saga('Hello'), string)
   Expect(typeof Saga(function(){}), string)
@@ -134,7 +134,6 @@ Describe('A plaintext saga will output markup language', function callback(done)
   ].join('\n')
 
   var output = Saga(input)
-  console.log(typeof output, Object.prototype.toString.call(output), output)
   Expect(typeof output, string)
 
   if (typeof globalThis.as2 === 'function') {
